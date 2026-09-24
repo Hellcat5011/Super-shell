@@ -1,49 +1,64 @@
-A minimal quickshell launcher that was fully vibe coded. 
+# Super Shell 🚀
 
-It is a minimal shell(To an extent), that has the following options:
+A minimal, feature-rich shell environment built with [Quickshell](https://quickshell.outfoxxed.me/) for Hyprland.
 
-- App launcher
-- Wallpaper selector
-- Power Menu
-- Notification Center
-- Clipboard (This is actually a full lightweight clipboard fully written in QML, not based on cliphist)
-- Screenshot and screenrecord utility
-- Lockscreen (Still being worked on, also will be integrated with greetd)
+> [!WARNING]
+> **Vibe Coded Project:** This is a fully vibe-coded project. If you are uncomfortable with this, please ignore this repository.
 
-## Dependencies
+## ✨ Features
 
-- **Quickshell**: The main QML shell environment.
-- **awww**: For setting wallpapers (can be swapped for hyprpaper).
-- **magick** (ImageMagick): For creating launcher preview images.
-- **matugen**: For Material You theme generation.
-- **hyprland**: Assumes you are using Hyprland (uses `hyprctl`).
-- **systemd/logind**: For power menu actions (`loginctl`, `systemctl`).
+Super Shell provides a comprehensive set of built-in tools and menus to keep your desktop lightweight and functional:
 
-## Installation
+- **App Launcher**: Quickly find and launch your applications.
+- **Wallpaper Selector**: Easily switch between your favorite backgrounds.
+- **Power Menu**: Sleek system controls (shutdown, reboot, suspend, etc.).
+- **Notification Center**: Manage and view your system notifications.
+- **Clipboard Manager**: A full, lightweight clipboard manager written entirely in QML (no reliance on `cliphist`).
+- **Screenshot & Screen Record Utility**: Capture your screen effortlessly.
+- **Lockscreen**: Custom lockscreen interface *(currently in development, planned integration with greetd)*.
 
-1. Install [Quickshell](https://quickshell.outfoxxed.me/).
-2. Clone this repository and move the folder to your `~/.config/quickshell/` directory.
+## 📦 Dependencies
+
+Ensure you have the following installed on your system before proceeding:
+
+- **[Quickshell](https://quickshell.outfoxxed.me/)**: The core QML shell environment powering Super Shell.
+- **[Hyprland](https://hyprland.org/)**: The Wayland compositor (the shell heavily relies on `hyprctl`).
+- **awww**: Used for setting wallpapers (can be swapped out for `hyprpaper` if preferred).
+- **magick (ImageMagick)**: Required for generating application launcher preview images.
+- **matugen**: Used for Material You dynamic theme generation based on your wallpaper.
+- **systemd / logind**: Required for power menu actions via `loginctl` and `systemctl`.
+
+## 🛠️ Installation
+
+1. **Install Quickshell**: Follow the instructions on the [Quickshell website](https://quickshell.outfoxxed.me/) to install it for your distribution.
+2. **Clone the repository**: Download this configuration to your Quickshell config directory.
    ```sh
-   git clone <repository_url>
-   mv super-shell ~/.config/quickshell/
+   git clone <repository_url> ~/.config/quickshell/super-shell
    ```
-3. Run the shell:
+   *(If you've already cloned it, simply move the `super-shell` folder to `~/.config/quickshell/`)*
+3. **Run the shell**:
    ```sh
    qs -c super-shell
    ```
 
-IPC calls:
+## 🎮 Usage & IPC Calls
 
-- qs -c super-shell ipc call launcher toggle
-- qs -c super-shell ipc call wallpaper toggle
-- qs -c super-shell ipc call clipboard toggle
-- qs -c super-shell ipc call power toggle
-- qs -c super-shell ipc call notif toggle
-- qs -c super-shell ipc call screenshot toggle
-- qs -c super-shell ipc call screenshot settings toggle
-- qs -c super-shell ipc call lock lock
+Super Shell is controlled via Quickshell's Inter-Process Communication (IPC). You can bind the following commands in your Hyprland configuration (`hyprland.conf`) to toggle various menus.
 
+### Available Commands:
 
-For more information about the available IPC calls and different options, run the below command in a terminal:
+- **App Launcher**: `qs -c super-shell ipc call launcher toggle`
+- **Wallpaper Selector**: `qs -c super-shell ipc call wallpaper toggle`
+- **Clipboard Manager**: `qs -c super-shell ipc call clipboard toggle`
+- **Power Menu**: `qs -c super-shell ipc call power toggle`
+- **Notification Center**: `qs -c super-shell ipc call notif toggle`
+- **Screenshot Utility**: `qs -c super-shell ipc call screenshot toggle`
+- **Lock Screen**: `qs -c super-shell ipc call lock lock`
 
-- qs -c super-shell ipc call help display
+### Help
+
+For more information about available IPC calls and extended options, run:
+
+```sh
+qs -c super-shell ipc call help display
+```
