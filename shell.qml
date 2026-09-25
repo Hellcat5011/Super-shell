@@ -3,9 +3,9 @@
 // shell.qml — Quickshell entry point
 //
 // Run this with (from anywhere):
-//   qs -c quickshell-launcher
+//   qs -c super-shell
 // assuming this whole folder is placed at
-//   ~/.config/quickshell/quickshell-launcher
+//   ~/.config/quickshell/super-shell
 //
 // or point at it directly without installing it anywhere in particular:
 //   qs -p /path/to/this/folder/shell.qml
@@ -94,8 +94,8 @@ ShellRoot {
 
     // IPC handlers: these let you (or a Hyprland keybind) control the
     // windows above from a terminal, e.g.:
-    //   qs -c quickshell-launcher ipc call launcher toggle
-    //   qs -c quickshell-launcher ipc call wallpaper toggle
+    //   qs -c super-shell ipc call launcher toggle
+    //   qs -c super-shell ipc call wallpaper toggle
     // See hypr/launcher-binds.conf for ready-made Hyprland keybinds.
     IpcHandler {
         target: "launcher"
@@ -175,7 +175,7 @@ ShellRoot {
             return `
 Quickshell Launcher IPC Commands:
 
-Usage: qs -c quickshell-launcher ipc call <target> <method> [args...]
+Usage: qs -c super-shell ipc call <target> <method> [args...]
 
 Available Targets and Methods:
 

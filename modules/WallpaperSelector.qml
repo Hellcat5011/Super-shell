@@ -25,13 +25,13 @@ import "../services"
 OverlayWindow {
     id: picker
     WlrLayershell.namespace: "wallpaper"
-    panelWidth:      1118
-    panelHeight:     468
+    panelWidth:      picker.width
+    panelHeight:     618
     cardRadius:      Theme.radiusLarge
-    // No card background — the images float directly over the wallpaper.
     cardTransparent: true
 
-    property string wallpaperDir: "/mnt/hdd/Wallpapers/walls"
+    property string wallpaperDir: Config.wallpaperDir.startsWith("~") ? (Quickshell.env("HOME") + Config.wallpaperDir.slice(1)) : Config.wallpaperDir
+    property var    _originalWallpapers: []
     property var    wallpapers:   []
     property bool   applying:     false
     property int    currentIndex: 0
@@ -42,24 +42,25 @@ OverlayWindow {
 
     onShownChanged: {
         if (shown) {
-            // Shuffle the already-loaded array instantly instead of spawning bash every time
-            var arr = picker.wallpapers.slice()
+            var arr = picker._originalWallpapers.slice()
             for (var i = arr.length - 1; i > 0; i--) {
                 var j = Math.floor(Math.random() * (i + 1))
                 var temp = arr[i]
                 arr[i] = arr[j]
                 arr[j] = temp
             }
-            picker.wallpapers = arr
+            
+            // Ensure at least 9 items for seamless PathView wrap around the screen
+            var duplicatedArr = []
+            while (duplicatedArr.length < 9 && arr.length > 0) {
+                duplicatedArr = duplicatedArr.concat(arr)
+            }
+            picker.wallpapers = duplicatedArr
             picker.currentIndex = 0
-
-            // Give PathView keyboard focus as soon as the panel opens.
             carousel.forceActiveFocus()
         }
     }
 
-    // ── File scanner ────────────────────────────────────────────────────
-    // Runs exactly once on startup to cache the list of wallpapers.
     Process {
         id: scanProcess
         command: [
@@ -75,7 +76,7 @@ OverlayWindow {
             if (running) {
                 _buffer = []
             } else {
-                picker.wallpapers = _buffer
+                picker._originalWallpapers = _buffer
             }
         }
 
@@ -87,17 +88,11 @@ OverlayWindow {
         }
     }
 
-    // ── Wallpaper applicator ────────────────────────────────────────────
     Process {
         id: applyProcess
         onExited: (exitCode) => {
             picker.applying = false
             if (exitCode === 0) {
-                // Matugen writes colours.json via atomic rename (temp file →
-                // final path).  inotify's IN_MODIFY never fires for renames,
-                // so watchChanges alone can't pick this up.  Calling reload()
-                // here, right after the script exits, is the reliable way to
-                // refresh the theme immediately.
                 Theme.forceReload()
                 picker.hide()
             }
@@ -106,21 +101,19 @@ OverlayWindow {
 
     function applyWallpaper(path) {
         picker.applying = true
-        applyProcess.command = ["sh", Quickshell.shellDir + "/scripts/set-wallpaper.sh", path]
+        applyProcess.command = ["sh", Quickshell.shellDir + "/scripts/set-wallpaper.sh", path, Config.wallpaperDaemon]
         applyProcess.running  = true
     }
 
-    // ── Carousel ─────────────────────────────────────────────────────────
+    // ── Carousel (Dynamic PathView for flawless fluid animation) ───────
     PathView {
         id: carousel
         anchors.fill: parent
 
-        // Keyboard focus — allows ← / → arrow keys to navigate.
         focus: true
         Keys.onLeftPressed:   decrementCurrentIndex()
         Keys.onRightPressed:  incrementCurrentIndex()
         Keys.onEscapePressed: picker.hide()
-        // Enter / Return applies the selected wallpaper (same as clicking).
         Keys.onReturnPressed: {
             if (!picker.applying && picker.wallpapers.length > 0)
                 picker.applyWallpaper(picker.wallpapers[picker.currentIndex])
@@ -130,11 +123,9 @@ OverlayWindow {
                 picker.applyWallpaper(picker.wallpapers[picker.currentIndex])
         }
 
-        // Mouse-wheel / touchpad scroll to navigate the carousel.
         WheelHandler {
             acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
             onWheel: (event) => {
-                // Negative Y (or negative X on horizontal swipe) = forward/right.
                 var forward = event.angleDelta.y < 0 || event.angleDelta.x < 0
                 if (forward) carousel.incrementCurrentIndex()
                 else         carousel.decrementCurrentIndex()
@@ -142,151 +133,136 @@ OverlayWindow {
             }
         }
 
-        model:         picker.wallpapers
-        currentIndex:  picker.currentIndex
-        // Only three delegates instantiated at a time: left, center, right.
-        pathItemCount: 3
+        model: picker.wallpapers
+        currentIndex: picker.currentIndex
+        onCurrentIndexChanged: picker.currentIndex = currentIndex
 
+        pathItemCount: picker.wallpapers.length
         preferredHighlightBegin: 0.5
         preferredHighlightEnd:   0.5
         highlightRangeMode:      PathView.StrictlyEnforceRange
         snapMode:                PathView.SnapToItem
+        highlightMoveDuration:   250
 
-        onCurrentIndexChanged: picker.currentIndex = currentIndex
-
-        // ── Path ──────────────────────────────────────────────────────────
-        // Three horizontal slots:
-        //   Left  22 %  — flanking, partially hidden behind centre
-        //   Centre 50 %  — full size, on top (z=2)
-        //   Right  78 %  — flanking, partially hidden behind centre
-        //
-        // Delegates are centred on the path point (x: -width/2), so the %
-        // values reference the middle of each image, not the left edge.
-        // At delegate width = 60 % of carousel and flank scale = 0.75, the
-        // flanking images overlap the centre image by ~10 %, giving the
-        // layered depth look from the reference image.
+        // ── Dynamic Scalable Path ─────────────────────────────────────────
         path: Path {
-            startX: 0
+            id: dynamicPath
+            property real n: Math.max(9, carousel.count)
+            startX: carousel.width * (0.4 - 0.0625 * dynamicPath.n)
             startY: carousel.height / 2
 
-            // Left slot
-            PathAttribute { name: "itemScale";   value: 0.75 }
-            PathAttribute { name: "itemOpacity"; value: 0.75 }
-            PathAttribute { name: "itemZ";       value: 0    }
+            PathAttribute { name: "itemWidthScale"; value: 0.12 }
+            PathAttribute { name: "zOrder"; value: 0 }
 
-            PathLine { x: carousel.width * 0.22; y: carousel.height / 2 }
+            PathLine { x: carousel.width * 0.275; y: carousel.height / 2 }
+            PathPercent { value: 0.5 - 1.0 / dynamicPath.n }
+            PathAttribute { name: "itemWidthScale"; value: 0.12 }
+            PathAttribute { name: "zOrder"; value: 1 }
 
-            PathAttribute { name: "itemScale";   value: 0.75 }
-            PathAttribute { name: "itemOpacity"; value: 0.75 }
-            PathAttribute { name: "itemZ";       value: 0    }
+            PathLine { x: carousel.width * 0.500; y: carousel.height / 2 }
+            PathPercent { value: 0.50000 }
+            PathAttribute { name: "itemWidthScale"; value: 0.32 }
+            PathAttribute { name: "zOrder"; value: 10 }
 
-            // Centre slot
-            PathLine { x: carousel.width * 0.50; y: carousel.height / 2 }
+            PathLine { x: carousel.width * 0.725; y: carousel.height / 2 }
+            PathPercent { value: 0.5 + 1.0 / dynamicPath.n }
+            PathAttribute { name: "itemWidthScale"; value: 0.12 }
+            PathAttribute { name: "zOrder"; value: 1 }
 
-            PathAttribute { name: "itemScale";   value: 1.0  }
-            PathAttribute { name: "itemOpacity"; value: 1.0  }
-            PathAttribute { name: "itemZ";       value: 2    }
-
-            // Right slot
-            PathLine { x: carousel.width * 0.78; y: carousel.height / 2 }
-
-            PathAttribute { name: "itemScale";   value: 0.75 }
-            PathAttribute { name: "itemOpacity"; value: 0.75 }
-            PathAttribute { name: "itemZ";       value: 0    }
-
-            PathLine { x: carousel.width * 1.0;  y: carousel.height / 2 }
-
-            PathAttribute { name: "itemScale";   value: 0.75 }
-            PathAttribute { name: "itemOpacity"; value: 0.75 }
-            PathAttribute { name: "itemZ";       value: 0    }
+            PathLine { x: carousel.width * (0.6 + 0.0625 * dynamicPath.n); y: carousel.height / 2 }
+            PathPercent { value: 1.00000 }
+            PathAttribute { name: "itemWidthScale"; value: 0.12 }
+            PathAttribute { name: "zOrder"; value: 0 }
         }
 
         // ── Delegate ──────────────────────────────────────────────────────
         delegate: Item {
-            // Base dimensions multiplied by itemScale directly to avoid matrix scale bugs with MultiEffect
-            width:  (carousel.width  * 0.60) * (PathView.itemScale ?? 0.75)
-            height: (carousel.height * 0.90) * (PathView.itemScale ?? 0.75)
-
-            // Shift origin to centre so the path x% values land at the
-            // middle of the image rather than its top-left corner.
-            x: -width  / 2
-            y: -height / 2
-
-            opacity: PathView.itemOpacity ?? 0.75
-            z:       PathView.itemZ       ?? 0
-
+            id: delegateRoot
             readonly property bool isCurrent: PathView.isCurrentItem
+            property real skewVal: -0.25
 
-            // ── Image tile ────────────────────────────────────────────────
+            z: PathView.zOrder ?? 0
+
+            width:  carousel.width * (PathView.itemWidthScale ?? 0.12)
+            height: carousel.height * 0.80
+
+            // ── Skewed Container ──────────────────────────────────────────
             Item {
-                anchors.fill:  parent
+                id: clipItem
+                width: parent.width
+                height: parent.height
+                x: Math.abs(parent.height * skewVal / 2) // Shift right to counteract visual tilt
+                y: 0
+                clip: true
+                antialiasing: true
 
-                Rectangle {
-                    id: imageMask
-                    anchors.fill: parent
-                    radius:       42
-                    visible:      false
-                    layer.enabled: true
+                transform: Matrix4x4 {
+                    matrix: Qt.matrix4x4(
+                        1, skewVal, 0, 0,
+                        0, 1,       0, 0,
+                        0, 0,       1, 0,
+                        0, 0,       0, 1
+                    )
                 }
 
                 Image {
                     id: img
-                    anchors.fill:  parent
-                    source:        "file://" + modelData
+                    // Enlarge and shift right to perfectly balance the visual tilt illusion,
+                    // without cropping out of the clipped corners.
+                    width: parent.width + Math.abs(parent.height * skewVal * 2)
+                    height: parent.height
+                    x: skewVal < 0 ? parent.height * skewVal * 1.4 : -parent.height * skewVal * 1.4
+                    y: 0
+                    antialiasing: true
+
+                    source: "file://" + modelData
                     sourceSize.width: 1920
-                    fillMode:      Image.PreserveAspectCrop
-                    asynchronous:  true
-                    visible:       false
-                }
-
-                MultiEffect {
-                    anchors.fill: parent
-                    source: img
-                    maskEnabled: true
-                    maskSource: imageMask
-
-                    // Fade in once decoded instead of popping in abruptly.
-                    opacity:       img.status === Image.Ready ? 1 : 0
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    
+                    opacity: img.status === Image.Ready ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: Theme.animMed } }
-                }
 
-                // 2 px accent border only on the selected centre image
-                Rectangle {
-                    anchors.fill: parent
-                    radius:       42
-                    color:        "transparent"
-                    border.width: isCurrent ? 3 : 0
-                    border.color: Theme.primary
-                    Behavior on border.width { NumberAnimation { duration: Theme.animFast } }
-                }
-
-                // Dim + label the centre tile while the script runs.
-                Rectangle {
-                    anchors.fill: parent
-                    color:        Qt.rgba(0, 0, 0, 0.55)
-                    visible:      picker.applying && isCurrent
-                    radius:       42
-                    Text {
-                        anchors.centerIn: parent
-                        text:             "Applying…"
-                        color:            "white"
-                        font.pixelSize:   20
-                        font.bold:        true
+                    transform: Matrix4x4 {
+                        matrix: Qt.matrix4x4(
+                            1, -skewVal, 0, 0,
+                            0, 1,        0, 0,
+                            0, 0,        1, 0,
+                            0, 0,        0, 1
+                        )
                     }
                 }
-            }
 
-            // ── Click handling ────────────────────────────────────────────
-            MouseArea {
-                anchors.fill: parent
-                enabled:      !picker.applying
-                onClicked: {
-                    if (isCurrent) {
-                        // Centre → apply.
-                        picker.applyWallpaper(modelData)
-                    } else {
-                        // Flank → scroll to centre.
-                        carousel.currentIndex = index
+                Rectangle {
+                    anchors.fill: parent
+                    color: "transparent"
+                    // Bind border width directly to the width scale for perfectly continuous zooming
+                    border.width: Math.max(0, ((PathView.itemWidthScale ?? 0.12) - 0.12) / 0.20 * 3)
+                    border.color: Theme.primary
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: Qt.rgba(0, 0, 0, 0.55)
+                    visible: picker.applying && isCurrent
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Applying…"
+                        color: "white"
+                        font.pixelSize: 20
+                        font.bold: true
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: !picker.applying
+                    onClicked: {
+                        if (isCurrent) {
+                            picker.applyWallpaper(modelData)
+                        } else {
+                            carousel.currentIndex = index
+                        }
                     }
                 }
             }

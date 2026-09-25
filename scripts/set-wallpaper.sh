@@ -7,17 +7,35 @@
 # need to run this by hand, but it's a plain script so you can.
 set -euo pipefail
 
-WALLPAPER="${1:?usage: set-wallpaper.sh <image path>}"
+WALLPAPER="${1:?usage: set-wallpaper.sh <image path> [daemon]}"
+DAEMON="${2:-awww}"
 
-if ! command -v awww >/dev/null 2>&1; then
-  echo "set-wallpaper.sh: 'awww' not found." >&2
-  echo "Install awww, or edit this script to call hyprpaper/another tool instead." >&2
+if [ "$DAEMON" = "awww" ]; then
+  if ! command -v awww >/dev/null 2>&1; then
+    echo "set-wallpaper.sh: 'awww' not found." >&2
+    exit 1
+  fi
+  awww img "$WALLPAPER" --transition-type random --transition-duration 1 --transition-fps 60
+elif [ "$DAEMON" = "swww" ]; then
+  if ! command -v swww >/dev/null 2>&1; then
+    echo "set-wallpaper.sh: 'swww' not found." >&2
+    exit 1
+  fi
+  swww img "$WALLPAPER" --transition-type random --transition-duration 1 --transition-fps 60
+elif [ "$DAEMON" = "hyprpaper" ]; then
+  if ! command -v hyprctl >/dev/null 2>&1; then
+    echo "set-wallpaper.sh: 'hyprctl' not found." >&2
+    exit 1
+  fi
+  # hyprpaper requires preload and wallpaper commands
+  hyprctl hyprpaper preload "$WALLPAPER"
+  for monitor in $(hyprctl monitors -j | jq -r '.[].name'); do
+    hyprctl hyprpaper wallpaper "$monitor,$WALLPAPER"
+  done
+else
+  echo "set-wallpaper.sh: unknown daemon '$DAEMON'" >&2
   exit 1
 fi
-
-# swww-daemon must already be running (usually started once via
-# exec-once = swww-daemon in hyprland.conf).
-awww img "$WALLPAPER" --transition-type random --transition-duration 1 --transition-fps 60
 
 # Create a downscaled JPEG preview for the app launcher.
 # The launcher only shows this at ~576 px wide, so 1080 px is more than enough.
@@ -37,7 +55,7 @@ if command -v matugen >/dev/null 2>&1; then
   echo "$WALLPAPER" > "$(dirname "$0")/../data/current-wallpaper.txt"
   
   # Tell Quickshell to reload the theme (avoids polling)
-  qs -c quickshell-launcher ipc call theme reload || true
+  qs -c super-shell ipc call theme reload || true
 else
   echo "set-wallpaper.sh: 'matugen' not found, theme not regenerated." >&2
   exit 1

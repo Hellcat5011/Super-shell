@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Shapes
 import Quickshell
 import Quickshell.Services.SystemTray
 import Quickshell.Wayland
@@ -39,6 +40,50 @@ PanelWindow {
         id: trayRow
         anchors.centerIn: parent
         spacing: 12
+
+        SettingsWindow {
+            id: settingsWindow
+        }
+
+        MouseArea {
+            width: 24
+            height: 24
+            hoverEnabled: true
+            acceptedButtons: Qt.LeftButton
+            onClicked: settingsWindow.toggle()
+
+            Item {
+                anchors.centerIn: parent
+                width: 18
+                height: 18
+                opacity: parent.containsMouse ? 0.7 : 1.0
+
+                Shape {
+                    anchors.fill: parent
+                    preferredRendererType: Shape.CurveRenderer
+                    scale: 18 / 24
+                    
+                    ShapePath {
+                        strokeColor: Theme.onBackground
+                        strokeWidth: 2
+                        fillColor: "transparent"
+                        joinStyle: ShapePath.RoundJoin
+                        capStyle: ShapePath.RoundCap
+                        PathSvg {
+                            path: "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                        }
+                    }
+                    ShapePath {
+                        strokeColor: Theme.onBackground
+                        strokeWidth: 2
+                        fillColor: "transparent"
+                        PathSvg {
+                            path: "M 12 9 A 3 3 0 0 1 12 15 A 3 3 0 0 1 12 9"
+                        }
+                    }
+                }
+            }
+        }
 
         Repeater {
             model: SystemTray.items

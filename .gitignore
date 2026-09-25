@@ -1,0 +1,7 @@
+# Ignore user-specific data
+data/current-wallpaper.txt
+data/colors.json
+evidence.log
+*~
+*.pyc
+__pycache__/

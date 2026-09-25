@@ -15,7 +15,7 @@ Super Shell provides a comprehensive set of built-in tools and menus to keep you
 - **Notification Center**: Manage and view your system notifications.
 - **Clipboard Manager**: A full, lightweight clipboard manager written entirely in QML (no reliance on `cliphist`).
 - **Screenshot & Screen Record Utility**: Capture your screen effortlessly.
-- **Lockscreen**: Custom lockscreen interface *(currently in development, planned integration with greetd)*.
+- **Lockscreen**: Custom lockscreen interface featuring PAM authentication and wayland session locking.
 
 ## 📦 Dependencies
 
