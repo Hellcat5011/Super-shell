@@ -1,0 +1,66 @@
+super-shell/
+├── data
+│   ├── colors.json
+│   ├── current-wallpaper.txt
+│   └── settings-gear.svg
+├── deploy
+│   ├── etc
+│   │   └── greetd
+│   │       └── quickshell-greeter
+│   │           ├── greet-helper.py
+│   │           ├── GreeterState.qml
+│   │           ├── GreeterTheme.qml
+│   │           ├── qmldir
+│   │           └── shell.qml
+│   ├── hyprland-keybind.conf.snippet
+│   ├── pam.d
+│   │   └── quickshell
+│   └── sync-greeter-wallpaper.sh
+├── modules
+│   ├── AppLauncher.qml
+│   ├── ClipboardManager.qml
+│   ├── DesktopCalendar.qml
+│   ├── DesktopClock.qml
+│   ├── DesktopMpris.qml
+│   ├── DesktopTray.qml
+│   ├── DesktopWidgetBackground.qml
+│   ├── KeybindViewer.qml
+│   ├── Lockscreen.qml
+│   ├── MenuInspector.qml
+│   ├── NotificationCenter.qml
+│   ├── NotificationPopup.qml
+│   ├── Osd.qml
+│   ├── OverlayWindow.qml
+│   ├── PowerMenu.qml
+│   ├── RecordingIndicator.qml
+│   ├── ScreenCapture.qml
+│   ├── ScreenshotSettings.qml
+│   ├── SettingRow.qml
+│   ├── SettingsWindow.qml
+│   └── WallpaperSelector.qml
+├── README.md
+├── scratch
+│   └── test
+│       ├── events.jsonl
+│       ├── fake_hyprctl.sh
+│       ├── greet-helper.py
+│       ├── mock_greetd.log
+│       ├── mock_greetd_v2.py
+│       ├── run_tests.py
+│       ├── test_proc.qml
+│       └── verdict.json
+├── scripts
+│   ├── clipboard-add.sh
+│   ├── clipboard-daemon.sh
+│   ├── get-audio.sh
+│   ├── get-bluetooth.sh
+│   ├── get-mpris.sh
+│   ├── screenshot-config.sh
+│   └── set-wallpaper.sh
+├── services
+│   ├── Config.qml
+│   ├── NotificationManager.qml
+│   ├── qmldir
+│   ├── SystemMonitor.qml
+│   └── Theme.qml
+└── shell.qml

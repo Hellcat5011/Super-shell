@@ -1,0 +1,15 @@
+{
+  "scenario": "drop",
+  "result": "INFO",
+  "reason": "ttl reached",
+  "elapsed_s": 40.23,
+  "checks": {
+    "session_created": true,
+    "auth_succeeded": false,
+    "start_session_received": false,
+    "greeter_exited_after_start": null,
+    "password_sent_to_nonsecret_prompt": false,
+    "cancel_session_seen": false,
+    "protocol_violations": []
+  }
+}

@@ -1,0 +1,59 @@
+[  0.00s] mock greetd v2 listening on /mnt/hdd/config/quickshell/super-shell/scratch/test/mock.sock scenario=ok ttl=40.0s
+[  0.49s] --- new connection ---
+[  0.49s] <- {"type": "create_session", "username": "tester"}
+[  0.49s] -> {"type": "auth_message", "auth_message_type": "secret", "auth_message": "Password:"}
+[  0.49s] <- {"type": "post_auth_message_response", "response": "<redacted len=8>"}
+[  0.49s] -> {"type": "success"}
+[  0.49s] <- {"type": "start_session", "cmd": ["echo", "session_started"]}
+[  0.49s] -> {"type": "success"}
+[  0.49s] GREETER EXITED after start_session -> session would start now
+[  1.49s] VERDICT PASS (session concluded)
+[  0.00s] mock greetd v2 listening on /mnt/hdd/config/quickshell/super-shell/scratch/test/mock.sock scenario=fail_then_ok ttl=40.0s
+[  0.48s] --- new connection ---
+[  0.48s] <- {"type": "create_session", "username": "tester"}
+[  0.48s] -> {"type": "auth_message", "auth_message_type": "secret", "auth_message": "Password:"}
+[  0.48s] <- {"type": "post_auth_message_response", "response": "<redacted len=8>"}
+[  0.48s] -> {"type": "error", "error_type": "auth_error", "description": "Authentication failed"}
+[  0.48s] client closed connection
+[ 40.24s] VERDICT FAIL (ttl reached)
+[  0.00s] mock greetd v2 listening on /mnt/hdd/config/quickshell/super-shell/scratch/test/mock.sock scenario=otp ttl=40.0s
+[  0.48s] --- new connection ---
+[  0.49s] <- {"type": "create_session", "username": "tester"}
+[  0.49s] -> {"type": "auth_message", "auth_message_type": "secret", "auth_message": "Password:"}
+[  0.49s] <- {"type": "post_auth_message_response", "response": "<redacted len=8>"}
+[  0.49s] -> {"type": "auth_message", "auth_message_type": "visible", "auth_message": "Code:"}
+[  0.49s] <- {"type": "cancel_session"}
+[  0.49s] connection error: BrokenPipeError(32, 'Broken pipe')
+[ 40.24s] VERDICT FAIL (ttl reached)
+[  0.00s] mock greetd v2 listening on /mnt/hdd/config/quickshell/super-shell/scratch/test/mock.sock scenario=info ttl=40.0s
+[  0.49s] --- new connection ---
+[  0.49s] <- {"type": "create_session", "username": "tester"}
+[  0.49s] -> {"type": "auth_message", "auth_message_type": "info", "auth_message": "Touch your security key (mock)"}
+[  0.49s] <- {"type": "post_auth_message_response"}
+[  0.49s] -> {"type": "auth_message", "auth_message_type": "secret", "auth_message": "Password:"}
+[  0.49s] <- {"type": "post_auth_message_response", "response": "<redacted len=8>"}
+[  0.49s] -> {"type": "success"}
+[  0.49s] <- {"type": "start_session", "cmd": ["echo", "session_started"]}
+[  0.49s] -> {"type": "success"}
+[  0.49s] GREETER EXITED after start_session -> session would start now
+[  1.49s] VERDICT PASS (session concluded)
+[  0.00s] mock greetd v2 listening on /mnt/hdd/config/quickshell/super-shell/scratch/test/mock.sock scenario=start_error ttl=40.0s
+[  0.49s] --- new connection ---
+[  0.49s] <- {"type": "create_session", "username": "tester"}
+[  0.49s] -> {"type": "auth_message", "auth_message_type": "secret", "auth_message": "Password:"}
+[  0.49s] <- {"type": "post_auth_message_response", "response": "<redacted len=8>"}
+[  0.49s] -> {"type": "success"}
+[  0.49s] <- {"type": "start_session", "cmd": ["echo", "session_started"]}
+[  0.49s] -> {"type": "error", "error_type": "error", "description": "mock: cannot start session"}
+[  0.49s] client closed connection
+[ 40.24s] VERDICT PASS (ttl reached)
+[  0.00s] mock greetd v2 listening on /mnt/hdd/config/quickshell/super-shell/scratch/test/mock.sock scenario=hang ttl=40.0s
+[  0.48s] --- new connection ---
+[  0.49s] <- {"type": "create_session", "username": "tester"}
+[  0.49s] scenario=hang: not replying
+[ 40.24s] VERDICT INFO (ttl reached)
+[  0.00s] mock greetd v2 listening on /mnt/hdd/config/quickshell/super-shell/scratch/test/mock.sock scenario=drop ttl=40.0s
+[  0.47s] --- new connection ---
+[  0.47s] <- {"type": "create_session", "username": "tester"}
+[  0.47s] scenario=drop: closing
+[ 40.23s] VERDICT INFO (ttl reached)
