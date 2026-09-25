@@ -2,8 +2,8 @@
 -- This is NOT your real desktop config - it just needs to launch
 -- the Quickshell greeter UI and have one working monitor.
 hl.monitor({
-  output = "preferred",
-  mode = "auto",
+  output = " ",
+  mode = "preferred",
   position = "auto",
   scale = 1,
 })

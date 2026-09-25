@@ -1,4 +1,4 @@
-# Super Shell 🚀
+# Xeon Shell 🚀
 
 A minimal, feature-rich shell environment built with [Quickshell](https://quickshell.outfoxxed.me/) for Hyprland.
 
@@ -7,7 +7,7 @@ A minimal, feature-rich shell environment built with [Quickshell](https://quicks
 
 ## ✨ Features
 
-Super Shell provides a comprehensive set of built-in tools and menus to keep your desktop lightweight and functional:
+Xeon Shell provides a comprehensive set of built-in tools and menus to keep your desktop lightweight and functional:
 
 - **App Launcher**: Quickly find and launch your applications.
 - **Wallpaper Selector**: Easily switch between your favorite backgrounds.
@@ -33,17 +33,23 @@ Ensure you have the following installed on your system before proceeding:
 1. **Install Quickshell**: Follow the instructions on the [Quickshell website](https://quickshell.outfoxxed.me/) to install it for your distribution.
 2. **Clone the repository**: Download this configuration to your Quickshell config directory.
    ```sh
-   git clone <repository_url> ~/.config/quickshell/super-shell
+   git clone <repository_url> ~/.config/quickshell/xeon-shell
    ```
-   *(If you've already cloned it, simply move the `super-shell` folder to `~/.config/quickshell/`)*
-3. **Run the shell**:
+   *(If you've already cloned it, simply move the `xeon-shell` folder to `~/.config/quickshell/`)*
+3. **Run the install script**:
+   ```sh
+   cd ~/.config/quickshell/xeon-shell
+   ./deploy-install/install.sh
+   ```
+   *(Note: Settings migration only happens via this install script. If you pull updates without running install.sh, old settings won't migrate.)*
+4. **Run the shell**:
    ```sh
    qs -c xeon-shell
    ```
 
 ## 🎮 Usage & IPC Calls
 
-Super Shell is controlled via Quickshell's Inter-Process Communication (IPC). You can bind the following commands in your Hyprland configuration (`hyprland.conf`) to toggle various menus.
+Xeon Shell is controlled via Quickshell's Inter-Process Communication (IPC). You can bind the following commands in your Hyprland configuration (`hyprland.conf`) to toggle various menus.
 
 ### Available Commands:
 

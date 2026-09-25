@@ -13,8 +13,8 @@ fi
 # 2. Copy live config (Excluding internal/dev artifacts)
 echo "Copying live config to ~/.config/quickshell/xeon-shell..."
 mkdir -p "$HOME/.config/quickshell/xeon-shell"
-# Using rsync to cleanly exclude deploy/, scratch/, evidence/, and .git/
-rsync -a --exclude 'deploy' --exclude 'scratch' --exclude 'evidence' --exclude '.git' "$REPO_DIR/" "$HOME/.config/quickshell/xeon-shell/"
+# Using rsync to cleanly exclude deploy/, scratch/, evidence/, deploy-install/ and .git/
+rsync -a --exclude 'deploy' --exclude 'scratch' --exclude 'evidence' --exclude 'deploy-install' --exclude '.git' --exclude '.gitignore' "$REPO_DIR/" "$HOME/.config/quickshell/xeon-shell/"
 
 # 3. Settings migration
 OLD_CONF="$HOME/.config/Unknown Organization/quickshell.conf"
@@ -23,6 +23,7 @@ NEW_CONF="$NEW_CONF_DIR/xeon-shell.conf"
 
 if [ -f "$OLD_CONF" ]; then
     echo "Migrating old settings..."
+    echo "NOTE: This settings migration runs only via install.sh. Existing users must rerun this script after pulling the rebrand."
     mkdir -p "$NEW_CONF_DIR"
     cp -n "$OLD_CONF" "$NEW_CONF" || true
 fi
@@ -63,6 +64,11 @@ sudo mkdir -p /var/lib/greetd/quickshell-greeter
 sudo chown root:greeter-sync /var/lib/greetd/quickshell-greeter
 sudo chmod 2775 /var/lib/greetd/quickshell-greeter
 
+# Pre-flight check for new group
+if ! groups | grep -q '\bgreeter-sync\b'; then
+    echo "NOTE: 'greeter-sync' group is not active in this shell yet, using sudo -g for sync script."
+fi
+
 # 6. Copy deploy tree
 echo "Deploying greeter QML..."
 sudo mkdir -p /etc/greetd/quickshell-greeter
@@ -78,24 +84,12 @@ else
 fi
 read -rp "Install PAM config? [y/N] " confirm_pam
 if [[ "$confirm_pam" =~ ^[Yy]$ ]]; then
+    [ -f "$REPO_DIR/deploy/pam.d/quickshell" ] || { echo "missing pam source"; exit 1; }
     sudo cp "$REPO_DIR/deploy/pam.d/quickshell" /etc/pam.d/quickshell
     echo "Installed /etc/pam.d/quickshell"
 fi
 
-echo ""
-echo "Please review config.toml diff (if it exists):"
-if [ -f "$REPO_DIR/deploy/etc/greetd/config.toml" ]; then
-    if [ -f /etc/greetd/config.toml ]; then
-        diff -u /etc/greetd/config.toml "$REPO_DIR/deploy/etc/greetd/config.toml" || true
-    else
-        echo "(New file: /etc/greetd/config.toml)"
-    fi
-    read -rp "Install greetd config.toml? [y/N] " confirm_toml
-    if [[ "$confirm_toml" =~ ^[Yy]$ ]]; then
-        sudo cp "$REPO_DIR/deploy/etc/greetd/config.toml" /etc/greetd/config.toml
-        echo "Installed /etc/greetd/config.toml"
-    fi
-fi
+
 
 # Print recovery keybind
 echo ""
@@ -111,6 +105,6 @@ echo "Running initial sync..."
 # to execute the script as the current user but explicitly specifying the new primary group.
 # This avoids sg/newgrp which might prompt for passwords or not be available, and ensures
 # the script has the correct permissions to write into the setgid /var/lib directory.
-sudo -u "$USER" -g greeter-sync bash "$HOME/.config/quickshell/xeon-shell/deploy/sync-greeter-wallpaper.sh"
+sudo -u "$USER" -g greeter-sync bash "$REPO_DIR/deploy/sync-greeter-wallpaper.sh"
 
 echo "Installation complete. Please reboot or restart greetd."

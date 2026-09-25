@@ -173,7 +173,7 @@ ShellRoot {
         target: "help"
         function display(): string {
             return `
-Quickshell Launcher IPC Commands:
+Xeon Shell IPC Commands:
 
 Usage: qs -c xeon-shell ipc call <target> <method> [args...]
 
