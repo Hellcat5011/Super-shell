@@ -13,5 +13,4 @@ QtObject {
 
     // Hardcoded layout values from Config.qml
     property bool showLockscreenSessionControls: true
-    property string lockscreenAlignment: "left"
 }

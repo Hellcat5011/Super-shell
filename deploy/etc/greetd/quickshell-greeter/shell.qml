@@ -22,13 +22,20 @@ PanelWindow {
     property string currentText: ""
     property bool isPasswordMode: false
 
+    // ── Background: fallback color ──
+    Rectangle {
+        anchors.fill: parent
+        color: "#121414" // Solid dark color
+        visible: wallpaperImage.status !== Image.Ready
+    }
+
     // ── Background: static wallpaper ──
     Image {
         id: wallpaperImage
         anchors.fill: parent
-        source: "file:///etc/greetd/quickshell-greeter/assets/wallpaper.jpg"
+        source: "file:///var/lib/greetd/quickshell-greeter/wallpaper.jpg"
         fillMode: Image.PreserveAspectCrop
-        visible: true
+        visible: status === Image.Ready
         cache: false
         onStatusChanged: {
             if (status === Image.Error) console.warn("Failed to load wallpaper:", source)
@@ -49,16 +56,16 @@ PanelWindow {
         
         // Edge Gradient for readability
         Rectangle {
-            anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-            anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
+            anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+            anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: parent.width * 0.6
             
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: GreeterTheme.lockscreenAlignment === "left" ? "black" : "transparent" }
-                GradientStop { position: 1.0; color: GreeterTheme.lockscreenAlignment === "left" ? "transparent" : "black" }
+                GradientStop { position: 0.0; color: GreeterState.lockscreenAlignment === "left" ? "black" : "transparent" }
+                GradientStop { position: 1.0; color: GreeterState.lockscreenAlignment === "left" ? "transparent" : "black" }
             }
         }
     }
@@ -67,11 +74,17 @@ PanelWindow {
     Item {
         id: globalInputHandler
         anchors.fill: parent
-        focus: !win.isPasswordMode
+        focus: !win.isPasswordMode && !userFieldContainer.isUsernameMode
         Keys.onPressed: (event) => {
-            if (!win.isPasswordMode) {
-                win.isPasswordMode = true
-                passwordInput.forceActiveFocus()
+            if (!win.isPasswordMode && !userFieldContainer.isUsernameMode) {
+                if (GreeterState.username === GreeterState.newUserSentinel && event.text.length > 0) {
+                    userFieldContainer.isUsernameMode = true
+                    userInlineInput.text = event.text
+                    userInlineInput.cursorPosition = userInlineInput.text.length
+                } else {
+                    win.isPasswordMode = true
+                    passwordInput.forceActiveFocus()
+                }
                 event.accepted = true
             }
         }
@@ -80,11 +93,15 @@ PanelWindow {
     Timer {
         id: inactivityTimer
         interval: 15000
-        running: win.isPasswordMode
+        running: win.isPasswordMode || userFieldContainer.isUsernameMode
         repeat: false
         onTriggered: {
             passwordInput.text = ""
             win.isPasswordMode = false
+            if (userFieldContainer.isUsernameMode) {
+                userInlineInput.text = ""
+                userFieldContainer.isUsernameMode = false
+            }
             globalInputHandler.forceActiveFocus()
         }
     }
@@ -92,7 +109,7 @@ PanelWindow {
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            if (!win.isPasswordMode) {
+            if (!win.isPasswordMode && !userFieldContainer.isUsernameMode) {
                 win.isPasswordMode = true
                 passwordInput.forceActiveFocus()
             }
@@ -118,20 +135,20 @@ PanelWindow {
 
         // ── SIDE CONTENT WRAPPER ──
         Item {
-            anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-            anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
+            anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+            anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            anchors.leftMargin: GreeterTheme.lockscreenAlignment === "left" ? content.px(120) : 0
-            anchors.rightMargin: GreeterTheme.lockscreenAlignment === "right" ? content.px(120) : 0
+            anchors.leftMargin: GreeterState.lockscreenAlignment === "left" ? content.px(120) : 0
+            anchors.rightMargin: GreeterState.lockscreenAlignment === "right" ? content.px(120) : 0
             width: content.px(600)
             
             // ── TOP: Clock & Day ──
             Column {
                 anchors.top: parent.top
                 anchors.topMargin: content.px(120)
-                anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
+                anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
                 spacing: content.px(15)
 
                 property var currentDate: new Date()
@@ -141,9 +158,9 @@ PanelWindow {
                 }
 
                 Text {
-                    anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                    anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
-                    horizontalAlignment: GreeterTheme.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
+                    anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                    anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
+                    horizontalAlignment: GreeterState.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
                     text: {
                         let d = parent.currentDate
                         let rawH = d.getHours()
@@ -158,9 +175,9 @@ PanelWindow {
                 }
 
                 Text {
-                    anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                    anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
-                    horizontalAlignment: GreeterTheme.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
+                    anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                    anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
+                    horizontalAlignment: GreeterState.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
                     text: Qt.formatDate(parent.currentDate, "dddd / MMMM d").toUpperCase()
                     color: GreeterTheme.onPrimaryContainerColor
                     font.family: "Inter"
@@ -175,15 +192,15 @@ PanelWindow {
             Column {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.verticalCenterOffset: content.px(80)
-                anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
+                anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
                 width: content.px(400)
                 spacing: content.px(5)
 
                 Text {
-                    anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                    anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
-                    horizontalAlignment: GreeterTheme.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
+                    anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                    anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
+                    horizontalAlignment: GreeterState.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
                     text: "CURRENT OPERATIVE"
                     color: GreeterTheme.onPrimaryContainerColor
                     font.family: "Inter"
@@ -193,23 +210,108 @@ PanelWindow {
                     opacity: 0.6
                 }
 
-                Text {
-                    anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                    anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
-                    horizontalAlignment: GreeterTheme.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
-                    text: GreeterState.username.toUpperCase()
-                    color: GreeterTheme.onPrimaryContainerColor
-                    font.family: "Inter"
-                    font.weight: Font.Black
-                    font.pixelSize: content.px(48)
-                    bottomPadding: content.px(15)
+                Item {
+                    id: userFieldContainer
+                    anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                    anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
+                    width: content.px(400)
+                    height: content.px(63) // 48 + 15 padding
+
+                    property bool isUsernameMode: false
+                    property string nextUsername: GreeterState.username
+
+                    onNextUsernameChanged: {
+                        if (!isUsernameMode) userChangeAnim.restart()
+                    }
+
+                    SequentialAnimation {
+                        id: userChangeAnim
+                        ParallelAnimation {
+                            NumberAnimation { target: userDisplay; property: "opacity"; to: 0; duration: 75; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: userDisplay; property: "y"; to: content.px(-10); duration: 75; easing.type: Easing.OutCubic }
+                        }
+                        ScriptAction { 
+                            script: {
+                                userDisplay.text = userFieldContainer.nextUsername.toUpperCase()
+                                userDisplay.color = (userFieldContainer.nextUsername === GreeterState.newUserSentinel) ? Qt.rgba(GreeterTheme.onPrimaryContainerColor.r, GreeterTheme.onPrimaryContainerColor.g, GreeterTheme.onPrimaryContainerColor.b, 0.4) : GreeterTheme.onPrimaryContainerColor 
+                            }
+                        }
+                        PropertyAction { target: userDisplay; property: "y"; value: content.px(10) }
+                        ParallelAnimation {
+                            NumberAnimation { target: userDisplay; property: "opacity"; to: 1; duration: 75; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: userDisplay; property: "y"; to: 0; duration: 75; easing.type: Easing.OutCubic }
+                        }
+                        onStopped: console.log("userChangeAnim stopped! opacity is", userDisplay.opacity, "text is", userDisplay.text)
+                    }
+
+                    Text {
+                        id: userDisplay
+                        anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                        anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
+                        horizontalAlignment: GreeterState.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
+                        y: 0
+                        text: GreeterState.username.toUpperCase()
+                        color: GreeterState.username === GreeterState.newUserSentinel ? Qt.rgba(GreeterTheme.onPrimaryContainerColor.r, GreeterTheme.onPrimaryContainerColor.g, GreeterTheme.onPrimaryContainerColor.b, 0.4) : GreeterTheme.onPrimaryContainerColor
+                        font.family: "Inter"
+                        font.weight: Font.Black
+                        font.pixelSize: content.px(48)
+                        bottomPadding: content.px(15)
+                        visible: !userFieldContainer.isUsernameMode
+                        
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (userFieldContainer.isUsernameMode) return
+                                GreeterState.cycleUser()
+                            }
+                        }
+                    }
+
+                    TextInput {
+                        id: userInlineInput
+                        anchors.fill: userDisplay
+                        horizontalAlignment: userDisplay.horizontalAlignment
+                        color: GreeterTheme.onPrimaryContainerColor
+                        font.family: "Inter"
+                        font.weight: Font.Black
+                        font.pixelSize: content.px(48)
+                        bottomPadding: content.px(15)
+                        visible: userFieldContainer.isUsernameMode
+                        activeFocusOnTab: true
+                        
+                        onVisibleChanged: {
+                            if (visible) {
+                                forceActiveFocus()
+                            }
+                        }
+                        
+                        Keys.onEscapePressed: {
+                            text = ""
+                            userFieldContainer.isUsernameMode = false
+                            globalInputHandler.forceActiveFocus()
+                        }
+                        Keys.onPressed: (event) => {
+                            inactivityTimer.restart()
+                            if (event.key === Qt.Key_Enter || event.key === Qt.Key_Return) {
+                                if (text.trim().length > 0) {
+                                    GreeterState.commitNewUser(text)
+                                    userFieldContainer.isUsernameMode = false
+                                    userChangeAnim.restart()
+                                    win.isPasswordMode = true
+                                    passwordInput.forceActiveFocus()
+                                }
+                                event.accepted = true
+                            }
+                        }
+                    }
                 }
 
                 // ── PASSWORD & LOCK MORPH CONTAINER ──
                 Rectangle {
                     id: passwordContainer
-                    anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                    anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
+                    anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                    anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
                     
                     width: win.isPasswordMode ? parent.width : content.px(55)
                     height: content.px(55)
@@ -411,9 +513,9 @@ PanelWindow {
 
                 // ── STATUS MESSAGE ──
                 Text {
-                    anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                    anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
-                    horizontalAlignment: GreeterTheme.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
+                    anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                    anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
+                    horizontalAlignment: GreeterState.lockscreenAlignment === "left" ? Text.AlignLeft : Text.AlignRight
                     text: GreeterState.sessionStarting ? "Starting session..." : GreeterState.statusMessage
                     color: GreeterState.showFailure ? GreeterTheme.error : Qt.rgba(GreeterTheme.onPrimaryContainerColor.r, GreeterTheme.onPrimaryContainerColor.g, GreeterTheme.onPrimaryContainerColor.b, 0.7)
                     font.pixelSize: content.px(14)
@@ -426,9 +528,9 @@ PanelWindow {
             Row {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: content.px(120)
-                anchors.left: GreeterTheme.lockscreenAlignment === "left" ? parent.left : undefined
-                anchors.right: GreeterTheme.lockscreenAlignment === "right" ? parent.right : undefined
-                layoutDirection: GreeterTheme.lockscreenAlignment === "left" ? Qt.LeftToRight : Qt.RightToLeft
+                anchors.left: GreeterState.lockscreenAlignment === "left" ? parent.left : undefined
+                anchors.right: GreeterState.lockscreenAlignment === "right" ? parent.right : undefined
+                layoutDirection: GreeterState.lockscreenAlignment === "left" ? Qt.LeftToRight : Qt.RightToLeft
                 spacing: content.px(40)
                 visible: GreeterTheme.showLockscreenSessionControls
 
@@ -478,28 +580,66 @@ PanelWindow {
                     command: "systemctl reboot"
                 }
 
-                // Current session indicator
-                Row {
-                    spacing: content.px(15)
-                    anchors.verticalCenter: parent.verticalCenter
+                // Current session indicator / cycler
+                Item {
+                    id: sessionItem
+                    width: sessionRow.implicitWidth
+                    height: sessionRow.implicitHeight
+                    property string nextSessionName: GreeterState.sessionName
                     
-                    Rectangle {
-                        width: content.px(6)
-                        height: width
-                        radius: width / 2
-                        color: GreeterTheme.onPrimaryContainerColor
-                        anchors.verticalCenter: parent.verticalCenter
-                        opacity: 0.5
+                    onNextSessionNameChanged: sessionChangeAnim.restart()
+                    
+                    SequentialAnimation {
+                        id: sessionChangeAnim
+                        ParallelAnimation {
+                            NumberAnimation { target: sessionLabel; property: "opacity"; to: 0; duration: 75; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: sessionLabel; property: "y"; to: content.px(-5); duration: 75; easing.type: Easing.OutCubic }
+                        }
+                        ScriptAction { 
+                            script: {
+                                sessionLabel.text = sessionItem.nextSessionName.toUpperCase()
+                            }
+                        }
+                        PropertyAction { target: sessionLabel; property: "y"; value: content.px(5) }
+                        ParallelAnimation {
+                            NumberAnimation { target: sessionLabel; property: "opacity"; to: 1; duration: 75; easing.type: Easing.OutCubic }
+                            NumberAnimation { target: sessionLabel; property: "y"; to: 0; duration: 75; easing.type: Easing.OutCubic }
+                        }
                     }
-                    
-                    Text {
-                        text: "GREETD SESSION"
-                        color: GreeterTheme.onPrimaryContainerColor
-                        font.family: "Inter"
-                        font.weight: Font.Bold
-                        font.pixelSize: content.px(14)
-                        font.letterSpacing: content.px(2)
-                        opacity: 0.5
+
+                    Row {
+                        id: sessionRow
+                        spacing: content.px(15)
+                        anchors.verticalCenter: parent.verticalCenter
+                        
+                        Rectangle {
+                            width: content.px(6)
+                            height: width
+                            radius: width / 2
+                            color: GreeterTheme.onPrimaryContainerColor
+                            anchors.verticalCenter: parent.verticalCenter
+                            opacity: 0.5
+                        }
+                        
+                        Text {
+                            id: sessionLabel
+                            text: GreeterState.sessionName.toUpperCase()
+                            color: sessionMArea.containsMouse ? GreeterTheme.primary : GreeterTheme.onPrimaryContainerColor
+                            font.family: "Inter"
+                            font.weight: Font.Bold
+                            font.pixelSize: content.px(14)
+                            font.letterSpacing: content.px(2)
+                            y: 0
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                        }
+                    }
+                    MouseArea {
+                        id: sessionMArea
+                        anchors.fill: parent
+                        anchors.margins: content.px(-10)
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: GreeterState.cycleSession()
                     }
                 }
             }

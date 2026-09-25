@@ -27,7 +27,8 @@ OverlayWindow {
 
     property var searchIndex: [
         "Wallpaper Wallpaper Directory The absolute path to the directory containing your wallpaper images. Wallpaper Daemon The backend service used to set and render your desktop wallpapers.",
-        "Lock Screen Lockscreen Power Menu Allow session control actions (Suspend, Reboot, Shutdown) directly from the lockscreen. Lockscreen Alignment Position the lockscreen elements aligned to the left or right edge of the screen."
+        "Lock Screen Lockscreen Power Menu Allow session control actions (Suspend, Reboot, Shutdown) directly from the lockscreen. Lockscreen Alignment Position the lockscreen elements aligned to the left or right edge of the screen.",
+        "Greeter Remember Last User Save the last logged-in user and session to automatically pre-select them on the next boot."
     ]
 
     onShownChanged: {
@@ -122,7 +123,7 @@ OverlayWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
-                    model: ["Wallpaper", "Lock Screen"]
+                    model: ["Wallpaper", "Lock Screen", "Greeter"]
                     currentIndex: 0
                     
                     delegate: Item {
@@ -192,7 +193,7 @@ OverlayWindow {
                         Layout.fillWidth: true
                         
                         Text {
-                            text: tabList.currentIndex === 0 ? "⚙  Wallpaper Settings" : "⚙  Lock Screen Settings"
+                            text: tabList.currentIndex === 0 ? "⚙  Wallpaper Settings" : (tabList.currentIndex === 1 ? "⚙  Lock Screen Settings" : "⚙  Greeter Settings")
                             color: Theme.onPrimaryContainerColor
                             font.pixelSize: 20
                             font.weight: Font.DemiBold
@@ -358,6 +359,34 @@ OverlayWindow {
                             }
                         }
 
+                        
+                        Item { Layout.fillHeight: true }
+                    }
+                    // ── PAGE 2: Greeter ──
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 24
+                        visible: tabList.currentIndex === 2
+                        
+                        // Setting: Remember Last User
+                        RowLayout {
+                            visible: root.fuzzyMatch(searchField.text, "Remember Last User Save the last logged-in user and session to automatically pre-select them on the next boot.")
+                            Layout.fillWidth: true
+                            
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+                                Text { text: "Remember Last User"; color: Theme.onPrimaryContainerColor; font.pixelSize: 15; font.weight: Font.Medium }
+                                Text { text: "Save the last logged-in user and session to automatically pre-select them on the next boot. (Note: changes apply after next greeter sync)"; color: Theme.onPrimaryContainerColor; opacity: 0.6; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
+                            }
+                            
+                            Switch {
+                                Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+                                checked: Config.rememberLastUser
+                                onCheckedChanged: Config.rememberLastUser = checked
+                            }
+                        }
                         
                         Item { Layout.fillHeight: true }
                     }

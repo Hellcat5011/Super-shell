@@ -27,8 +27,17 @@ def recv_msg(sock):
     return json.loads(recv_exact(sock, length).decode("utf-8"))
 
 def fail(reason):
-    print(f"FAIL:{reason}")
+    print(f"FAIL:{reason}", file=sys.stderr)
     sys.exit(1)
+
+def write_last_user(username, session_cmd):
+    path = os.environ.get("GREETER_LAST_USER_FILE", "/var/lib/greetd/quickshell-greeter/last-user")
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            json.dump({"user": username, "session": session_cmd}, f)
+    except Exception as e:
+        print(f"WARN: could not write last-user state: {e!r}", file=sys.stderr)
 
 def run_exit_cmd():
     raw = os.environ.get("GREETER_EXIT_CMD", "")
@@ -45,10 +54,11 @@ def run_exit_cmd():
               f"'starting session'", file=sys.stderr)
 
 def main():
-    if len(sys.argv) < 3:
-        fail("usage: greet-helper.py <username> <session_cmd...>")
-    username = sys.argv[1]
-    session_cmd = sys.argv[2:]
+    if len(sys.argv) < 4:
+        fail("usage: greet-helper.py <remember_1_0> <username> <session_cmd...>")
+    remember = (sys.argv[1] == "1")
+    username = sys.argv[2]
+    session_cmd = sys.argv[3:]
     password = sys.stdin.readline().rstrip("\n")
 
     sock_path = os.environ.get("GREETD_SOCK")
@@ -92,6 +102,9 @@ def main():
             fail(resp.get("description", "start_session error"))
         if resp.get("type") != "success":
             fail(f"unexpected response to start_session: {resp}")
+
+        if remember:
+            write_last_user(username, session_cmd)
 
         run_exit_cmd()
         print("OK")

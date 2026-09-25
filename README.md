@@ -38,7 +38,7 @@ Ensure you have the following installed on your system before proceeding:
    *(If you've already cloned it, simply move the `super-shell` folder to `~/.config/quickshell/`)*
 3. **Run the shell**:
    ```sh
-   qs -c super-shell
+   qs -c xeon-shell
    ```
 
 ## 🎮 Usage & IPC Calls
@@ -47,18 +47,18 @@ Super Shell is controlled via Quickshell's Inter-Process Communication (IPC). Yo
 
 ### Available Commands:
 
-- **App Launcher**: `qs -c super-shell ipc call launcher toggle`
-- **Wallpaper Selector**: `qs -c super-shell ipc call wallpaper toggle`
-- **Clipboard Manager**: `qs -c super-shell ipc call clipboard toggle`
-- **Power Menu**: `qs -c super-shell ipc call power toggle`
-- **Notification Center**: `qs -c super-shell ipc call notif toggle`
-- **Screenshot Utility**: `qs -c super-shell ipc call screenshot toggle`
-- **Lock Screen**: `qs -c super-shell ipc call lock lock`
+- **App Launcher**: `qs -c xeon-shell ipc call launcher toggle`
+- **Wallpaper Selector**: `qs -c xeon-shell ipc call wallpaper toggle`
+- **Clipboard Manager**: `qs -c xeon-shell ipc call clipboard toggle`
+- **Power Menu**: `qs -c xeon-shell ipc call power toggle`
+- **Notification Center**: `qs -c xeon-shell ipc call notif toggle`
+- **Screenshot Utility**: `qs -c xeon-shell ipc call screenshot toggle`
+- **Lock Screen**: `qs -c xeon-shell ipc call lock lock`
 
 ### Help
 
 For more information about available IPC calls and extended options, run:
 
 ```sh
-qs -c super-shell ipc call help display
+qs -c xeon-shell ipc call help display
 ```
