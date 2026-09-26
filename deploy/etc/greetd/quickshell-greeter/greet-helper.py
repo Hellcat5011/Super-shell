@@ -36,6 +36,7 @@ def write_last_user(username, session_cmd):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
             json.dump({"user": username, "session": session_cmd}, f)
+        os.chmod(path, 0o664)
     except Exception as e:
         print(f"WARN: could not write last-user state: {e!r}", file=sys.stderr)
 
@@ -67,36 +68,60 @@ def main():
 
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.settimeout(TIMEOUT_S)
-    cancelled = False
+
+    # Any exit path that leaves a session open on the greetd side must send
+    # cancel_session explicitly before disconnecting. Disconnect-triggered
+    # cleanup is not reliable enough on real greetd — without this, a retry
+    # after a wrong password hits "session is already being configured".
+    session_open = False
+
+    def cancel_and_fail(reason):
+        nonlocal session_open
+        if session_open:
+            try:
+                send_msg(sock, {"type": "cancel_session"})
+                # Clean shutdown so greetd sees FIN instead of RST. Reduces
+                # "client loop failed" noise in the journal.
+                try:
+                    sock.shutdown(socket.SHUT_RDWR)
+                except Exception:
+                    pass
+            except Exception:
+                pass
+            session_open = False
+        fail(reason)
+
     try:
         sock.connect(sock_path)
         send_msg(sock, {"type": "create_session", "username": username})
+        session_open = True
         resp = recv_msg(sock)
 
         prompts = 0
         while resp.get("type") == "auth_message":
             prompts += 1
             if prompts > MAX_PROMPTS:
-                send_msg(sock, {"type": "cancel_session"}); cancelled = True
-                fail(f"too many auth prompts ({prompts}), aborting")
+                cancel_and_fail(f"too many auth prompts ({prompts}), aborting")
             kind = resp.get("auth_message_type")
             if kind == "secret":
                 send_msg(sock, {"type": "post_auth_message_response", "response": password})
             elif kind in ("info", "error"):
                 send_msg(sock, {"type": "post_auth_message_response"})
             else:
-                send_msg(sock, {"type": "cancel_session"}); cancelled = True
-                fail(f"unsupported auth prompt type '{kind}' - cannot answer "
-                     f"automatically (this greeter only handles a single "
-                     f"secret/password prompt)")
+                cancel_and_fail(f"unsupported auth prompt type '{kind}' - cannot answer "
+                                f"automatically (this greeter only handles a single "
+                                f"secret/password prompt)")
             resp = recv_msg(sock)
 
         if resp.get("type") == "error":
-            fail(resp.get("description", "auth error"))
+            cancel_and_fail(resp.get("description", "auth error"))
         if resp.get("type") != "success":
-            fail(f"unexpected response after auth: {resp}")
+            cancel_and_fail(f"unexpected response after auth: {resp}")
 
+        # Auth succeeded. Once start_session is sent, the greetd-side session
+        # is consumed, so no cancel is needed after this point.
         send_msg(sock, {"type": "start_session", "cmd": session_cmd})
+        session_open = False
         resp = recv_msg(sock)
         if resp.get("type") == "error":
             fail(resp.get("description", "start_session error"))
@@ -109,12 +134,7 @@ def main():
         run_exit_cmd()
         print("OK")
     except Exception as e:
-        if not cancelled:
-            try:
-                send_msg(sock, {"type": "cancel_session"})
-            except Exception:
-                pass
-        fail(str(e))
+        cancel_and_fail(str(e))
     finally:
         try:
             sock.close()

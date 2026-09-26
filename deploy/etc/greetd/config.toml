@@ -1,21 +1,8 @@
 # greetd configuration for Xeon Shell's Quickshell greeter.
-#
-# Flow:
-#   1. greetd starts /etc/greetd/launch-greeter.sh as the `greeter` user
-#   2. That script launches a minimal Hyprland session and the Quickshell
-#      greeter, capturing all output to /var/log/xeon-shell-greeter/session.log
-#   3. On successful authentication, greetd kills that greeter session and
-#      hands off to the user's real desktop session
 
 [terminal]
-# The VT to run the greeter on. Can be "next", "current" or a number.
 vt = 1
 
 [default_session]
-# Wrapper script that launches Hyprland with the minimal greeter config
-# and captures output to a single log file.
 command = "Hyprland --config /etc/greetd/hyprland-greet.lua"
-
-# The user to run the greeter as. Must be in the `video` group for DRM
-# access; verify with: `getent group video`.
 user = "greeter"

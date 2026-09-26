@@ -125,13 +125,7 @@ PanelWindow {
         readonly property real s: Math.max(0.1, height / designHeight)
         function px(v) { return Math.round(v * s) }
 
-        // ── PROCESS FOR SESSION COMMANDS ──
-        Process { 
-            id: powerProcess 
-            
-            // Testing check: dry-run mode
-            property bool isDryRun: Quickshell.env("QS_TESTING_MODE") === "1"
-        }
+        Process { id: powerProcess }
 
         // ── SIDE CONTENT WRAPPER ──
         Item {
@@ -241,7 +235,7 @@ PanelWindow {
                             NumberAnimation { target: userDisplay; property: "opacity"; to: 1; duration: 75; easing.type: Easing.OutCubic }
                             NumberAnimation { target: userDisplay; property: "y"; to: 0; duration: 75; easing.type: Easing.OutCubic }
                         }
-                        onStopped: console.log("userChangeAnim stopped! opacity is", userDisplay.opacity, "text is", userDisplay.text)
+
                     }
 
                     Text {
@@ -560,12 +554,8 @@ PanelWindow {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (powerProcess.isDryRun) {
-                                console.log("Dry run power command:", parent.command)
-                            } else {
-                                powerProcess.command = ["sh", "-c", parent.command]
-                                powerProcess.running = true
-                            }
+                            powerProcess.command = ["sh", "-c", parent.command]
+                            powerProcess.running = true
                         }
                     }
                 }

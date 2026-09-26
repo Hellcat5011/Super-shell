@@ -7,15 +7,9 @@ QtObject {
     id: root
 
     property string username: ""
-    onUsernameChanged: {
-        console.log("GreeterState username changed to:", username)
-    }
-    
     property var sessionCmd: ["start-hyprland"]
     property string sessionName: "Hyprland"
-    onSessionNameChanged: {
-        console.log("GreeterState sessionName changed to:", sessionName)
-    }
+
 
     property var usersList: []
     property var sessionsList: []
@@ -84,15 +78,11 @@ QtObject {
     property Process enumProcess: Process {
         id: enumProcess
         command: ["python3", Quickshell.shellDir + "/enum-helper.py"]
-        onRunningChanged: {
-            console.log("enumProcess running:", running)
-        }
         stderr: SplitParser {
-            onRead: data => console.log("enum-helper stderr:", data)
+            onRead: data => console.warn("enum-helper stderr:", data)
         }
         stdout: SplitParser {
             onRead: data => {
-                console.log("enum-helper output length:", data.length)
                 try {
                     let d = JSON.parse(data)
                     root.lockscreenAlignment = d.config.lockscreenAlignment
@@ -133,7 +123,7 @@ QtObject {
                     root.sessionName = root.sessionsList[sIdx].name
                     root.sessionCmd = root.sessionsList[sIdx].cmd
                 } catch(e) {
-                    console.log("Error parsing enum-helper output:", e)
+                    console.warn("enum-helper parse error:", e)
                 }
             }
         }
@@ -149,6 +139,7 @@ QtObject {
             onRead: data => {
                 if (data.trim() === "OK") {
                     root.sessionStarting = true
+                    exitProcess.running = true
                 }
             }
         }
@@ -170,7 +161,9 @@ QtObject {
         onRunningChanged: {
             if (running) {
                 helperProcess.write(password + "\n")
+                helperProcess.password = ""
             } else {
+                helperProcess.password = ""
                 if (!root.sessionStarting && !root.showFailure) {
                     root.unlockInProgress = false
                     root.showFailure = true
@@ -179,5 +172,9 @@ QtObject {
                 }
             }
         }
+    }
+
+    property Process exitProcess: Process {
+        command: ["hyprctl", "dispatch", "exit"]
     }
 }

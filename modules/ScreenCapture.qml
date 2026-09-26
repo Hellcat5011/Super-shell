@@ -232,7 +232,7 @@ PanelWindow {
 
     Process {
         id: settingsLauncher
-        command: ["qs", "-c", "super-shell", "ipc", "call", "screenshot", "settings"]
+        command: ["qs", "-c", "xeon-shell", "ipc", "call", "screenshot", "settings"]
     }
 
     // ---- ScreencopyView (frozen backdrop) ---------------------------------

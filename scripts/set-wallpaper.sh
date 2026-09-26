@@ -60,3 +60,13 @@ else
   echo "set-wallpaper.sh: 'matugen' not found, theme not regenerated." >&2
   exit 1
 fi
+
+# Push current wallpaper + config snapshot to the greeter's /var/lib
+# state dir so the greeter follows the desktop. Best-effort: a failure
+# here must not prevent the wallpaper from having been set.
+SYNC_SCRIPT="$(dirname "$0")/sync-greeter-wallpaper.sh"
+if [ -x "$SYNC_SCRIPT" ]; then
+    if ! bash "$SYNC_SCRIPT"; then
+        echo "set-wallpaper.sh: greeter sync failed (see above)" >&2
+    fi
+fi

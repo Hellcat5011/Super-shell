@@ -74,6 +74,11 @@ ShellRoot {
 
     Modules.DesktopTray {
         id: desktopTray
+        onToggleSettings: settingsWindow.toggle()
+    }
+
+    Modules.SettingsWindow {
+        id: settingsWindow
     }
 
     Modules.DesktopClock {
@@ -153,7 +158,13 @@ ShellRoot {
         function region(): void { screenCapture.captureRegion() }
         function window(): void { screenCapture.captureWindow() }
         function output(): void { screenCapture.captureOutput() }
-        function settings(): void { screenshotSettings.toggle() }
+    }
+
+    IpcHandler {
+        target: "settings"
+        function toggle(): void { settingsWindow.toggle() }
+        function open(): void { settingsWindow.show() }
+        function close(): void { settingsWindow.hide() }
     }
 
     IpcHandler {
@@ -218,7 +229,11 @@ Available Targets and Methods:
     region()    - Capture a screen region
     window()    - Capture a specific window
     output()    - Capture a specific output/screen
-    settings()  - Toggle screenshot settings
+
+  settings
+    toggle()  - Toggle the settings window
+    open()    - Open the settings window
+    close()   - Close the settings window
 
   keybinds
     toggle()  - Toggle the keybind viewer

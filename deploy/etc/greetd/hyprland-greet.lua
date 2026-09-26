@@ -1,6 +1,4 @@
--- Minimal Hyprland config for the greetd greeter session only.
--- This is NOT your real desktop config - it just needs to launch
--- the Quickshell greeter UI and have one working monitor.
+-- Minimal Hyprland config for the greetd greeter session.
 hl.monitor({
   output = " ",
   mode = "preferred",

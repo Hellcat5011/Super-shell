@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import "../services"
 
 OverlayWindow {
@@ -31,10 +32,25 @@ OverlayWindow {
         "Greeter Remember Last User Save the last logged-in user and session to automatically pre-select them on the next boot."
     ]
 
+    function requestClose() {
+        if (Config.isDirty) {
+            unsavedPopup.visible = true
+        } else {
+            root.hide()
+        }
+    }
+
+    onVisibleChanged: {
+        if (!visible && Config.isDirty) {
+            visible = true
+            requestClose()
+        }
+    }
+
     onShownChanged: {
         if (shown) {
+            Config.discard()
             keyHandler.forceActiveFocus()
-            if (tabList) tabList.currentIndex = 0
             if (searchField) searchField.text = ""
         }
     }
@@ -46,8 +62,13 @@ OverlayWindow {
 
         Keys.onPressed: (event) => {
             if (event.key === Qt.Key_Escape) {
-                root.hide()
-                event.accepted = true
+                if (unsavedPopup.visible) {
+                    event.accepted = true
+                } else {
+                    keyHandler.forceActiveFocus()
+                    root.requestClose()
+                    event.accepted = true
+                }
             }
         }
 
@@ -139,6 +160,7 @@ OverlayWindow {
                             radius: 8
                             color: Theme.onPrimaryContainerColor
                             opacity: tabList.currentIndex === index ? 0.85 : (mArea.containsMouse ? 0.15 : 0.0)
+                            layer.enabled: true
                             Behavior on opacity { NumberAnimation { duration: 150 } }
                         }
                         
@@ -210,6 +232,7 @@ OverlayWindow {
                             opacity: closeMouse.containsMouse ? 0.8 : 1.0
                             border.width: 1
                             border.color: closeMouse.containsMouse ? "transparent" : Theme.outlineVariant
+                            layer.enabled: true
                             
                             Text {
                                 anchors.centerIn: parent
@@ -222,7 +245,7 @@ OverlayWindow {
                                 id: closeMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onClicked: root.hide()
+                                onClicked: root.requestClose()
                             }
                         }
                     }
@@ -255,9 +278,9 @@ OverlayWindow {
                             }
                             
                             TextField {
-                                width: 200
+                                Layout.preferredWidth: 150
                                 Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                                text: Config.wallpaperDir
+                                text: Config.draftWallpaperDir
                                 color: Theme.onPrimaryContainerColor
                                 font.pixelSize: 14
                                 leftPadding: 12; rightPadding: 12; topPadding: 8; bottomPadding: 8
@@ -265,7 +288,8 @@ OverlayWindow {
                                     color: Theme.primary; opacity: 0.1; radius: 20
                                     border.width: 1; border.color: parent.activeFocus ? Theme.primary : Theme.outlineVariant
                                 }
-                                onEditingFinished: Config.wallpaperDir = text
+                                onTextEdited: Config.draftWallpaperDir = text
+                                onEditingFinished: Config.draftWallpaperDir = text
                             }
                         }
 
@@ -281,21 +305,11 @@ OverlayWindow {
                                 Text { text: "The backend service used to set and render your desktop wallpapers."; color: Theme.onPrimaryContainerColor; opacity: 0.6; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             }
                             
-                            ComboBox {
-                                width: 150
+                            StyledComboBox {
                                 Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                                 model: ["awww", "swww", "hyprpaper"]
-                                currentIndex: model.indexOf(Config.wallpaperDaemon)
-                                onActivated: Config.wallpaperDaemon = model[currentIndex]
-                                
-                                contentItem: Text {
-                                    text: parent.currentText; color: Theme.onPrimaryContainerColor; font.pixelSize: 14; verticalAlignment: Text.AlignVCenter; leftPadding: 16
-                                }
-                                background: Rectangle {
-                                    implicitHeight: 36
-                                    color: Theme.primary; opacity: 0.1; radius: 18
-                                    border.width: 1; border.color: parent.activeFocus ? Theme.primary : Theme.outlineVariant
-                                }
+                                currentIndex: model.indexOf(Config.draftWallpaperDaemon)
+                                onActivated: Config.draftWallpaperDaemon = model[currentIndex]
                             }
                         }
                         
@@ -321,10 +335,10 @@ OverlayWindow {
                                 Text { text: "Allow session control actions (Suspend, Reboot, Shutdown) directly from the lockscreen."; color: Theme.onPrimaryContainerColor; opacity: 0.6; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             }
                             
-                            Switch {
+                            PillSwitch {
                                 Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                                checked: Config.showLockscreenSessionControls
-                                onCheckedChanged: Config.showLockscreenSessionControls = checked
+                                checked: Config.draftShowLockscreenSessionControls
+                                onToggled: (value) => Config.draftShowLockscreenSessionControls = value
                             }
                         }
 
@@ -340,28 +354,18 @@ OverlayWindow {
                                 Text { text: "Position the lockscreen elements aligned to the left or right edge of the screen."; color: Theme.onPrimaryContainerColor; opacity: 0.6; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             }
                             
-                            ComboBox {
-                                width: 150
+                            StyledComboBox {
                                 Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                                 model: ["left", "right"]
-                                currentIndex: model.indexOf(Config.lockscreenAlignment)
-                                onActivated: Config.lockscreenAlignment = model[currentIndex]
-                                
-                                contentItem: Text {
-                                    text: parent.currentText; color: Theme.onPrimaryContainerColor; font.pixelSize: 14; verticalAlignment: Text.AlignVCenter; leftPadding: 16
-                                    font.capitalization: Font.Capitalize
-                                }
-                                background: Rectangle {
-                                    implicitHeight: 36
-                                    color: Theme.primary; opacity: 0.1; radius: 18
-                                    border.width: 1; border.color: parent.activeFocus ? Theme.primary : Theme.outlineVariant
-                                }
+                                currentIndex: model.indexOf(Config.draftLockscreenAlignment)
+                                onActivated: Config.draftLockscreenAlignment = model[currentIndex]
+                                font.capitalization: Font.Capitalize
                             }
                         }
 
-                        
                         Item { Layout.fillHeight: true }
                     }
+
                     // ── PAGE 2: Greeter ──
                     ColumnLayout {
                         Layout.fillWidth: true
@@ -381,14 +385,256 @@ OverlayWindow {
                                 Text { text: "Save the last logged-in user and session to automatically pre-select them on the next boot. (Note: changes apply after next greeter sync)"; color: Theme.onPrimaryContainerColor; opacity: 0.6; font.pixelSize: 12; wrapMode: Text.WordWrap; Layout.fillWidth: true }
                             }
                             
-                            Switch {
+                            PillSwitch {
                                 Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
-                                checked: Config.rememberLastUser
-                                onCheckedChanged: Config.rememberLastUser = checked
+                                checked: Config.draftRememberLastUser
+                                onToggled: (value) => Config.draftRememberLastUser = value
                             }
                         }
                         
                         Item { Layout.fillHeight: true }
+                    }
+                    
+                    // ── Footer Separator ──
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: Theme.outlineVariant
+                        opacity: 0.3
+                    }
+
+                    // ── Persistent Footer ──
+                    RowLayout {
+                        Layout.fillWidth: true
+                        
+                        Text {
+                            text: applyProc.resultMessage
+                            color: applyProc.success ? Theme.onPrimaryContainerColor : Theme.error
+                            font.pixelSize: 13
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+
+                        Button {
+                            id: applyBtn
+                            text: applyProc.running ? "Saving..." : "Save"
+                            onClicked: {
+                                Config.save()
+                                applyProc.command = ["bash", "-c", "python3 ~/.config/quickshell/xeon-shell/scripts/write-greeter-snapshot.py --alignment " + Config.lockscreenAlignment + " --remember " + (Config.rememberLastUser ? "true" : "false")]
+                                applyProc.running = true
+                            }
+
+                            contentItem: Text {
+                                text: parent.text
+                                color: Theme.onPrimaryContainerColor
+                                font.pixelSize: 14
+                                font.weight: Font.Medium
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                implicitHeight: 36
+                                implicitWidth: 150
+                                color: Theme.primary
+                                opacity: applyBtn.down ? 0.3 : (applyBtn.hovered ? 0.4 : 0.2)
+                                radius: 18
+                                border.width: 1
+                                border.color: Theme.primary
+                                layer.enabled: true
+                                Behavior on opacity { NumberAnimation { duration: 150 } }
+                            }
+                        }
+                        
+                        Timer {
+                            id: messageTimer
+                            interval: 5000
+                            onTriggered: applyProc.resultMessage = ""
+                        }
+                    }
+                    
+                    Process {
+                        id: applyProc
+                        property string resultMessage: ""
+                        property bool success: false
+                        
+                        stdout: SplitParser {
+                            onRead: data => console.log(data)
+                        }
+                        stderr: SplitParser {
+                            onRead: data => { applyProc.resultMessage = data; }
+                        }
+                        
+                        onStarted: {
+                            resultMessage = "";
+                            success = false;
+                            messageTimer.stop()
+                        }
+                        
+                        onExited: (code) => {
+                            if (code === 0) {
+                                success = true;
+                                resultMessage = "Settings saved.";
+                            } else {
+                                success = false;
+                                if (resultMessage.indexOf("greeter-sync group") !== -1) {
+                                    resultMessage = "Settings saved; greeter sync failed: Permission denied (greeter-sync group).";
+                                } else {
+                                    resultMessage = "Settings saved; greeter sync failed: " + resultMessage;
+                                }
+                            }
+                            messageTimer.restart()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // ── Unsaved Changes Popup ──
+    Item {
+        id: unsavedPopup
+        anchors.fill: parent
+        z: 100
+        visible: false
+
+        // Scrim
+        Rectangle {
+            anchors.fill: parent
+            color: Qt.rgba(0, 0, 0, 0.5)
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+            }
+        }
+
+        // Card
+        Item {
+            width: 400
+            height: 180
+            anchors.centerIn: parent
+
+            Rectangle {
+                anchors.fill: parent
+                radius: Theme.radiusLarge
+                color: "black"
+                opacity: 0.25
+            }
+            Rectangle {
+                anchors.fill: parent
+                radius: Theme.radiusLarge
+                color: "transparent"
+                border.width: 1
+                border.color: Qt.rgba(Theme.outlineVariant.r, Theme.outlineVariant.g, Theme.outlineVariant.b, 0.45)
+            }
+            
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 24
+                spacing: 16
+                
+                Text {
+                    text: "You have unsaved changes."
+                    color: Theme.onPrimaryContainerColor
+                    font.pixelSize: 18
+                    font.weight: Font.DemiBold
+                    Layout.alignment: Qt.AlignHCenter
+                }
+                
+                Item { Layout.fillHeight: true }
+                
+                Text {
+                    text: applyProcPopup.resultMessage
+                    color: Theme.error
+                    font.pixelSize: 13
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter
+                    visible: applyProcPopup.resultMessage !== ""
+                }
+                
+                Row {
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 16
+                    
+                    Button {
+                        id: saveBtn
+                        text: applyProcPopup.running ? "Saving..." : "Save"
+                        onClicked: {
+                            Config.save()
+                            applyProcPopup.command = ["bash", "-c", "python3 ~/.config/quickshell/xeon-shell/scripts/write-greeter-snapshot.py --alignment " + Config.lockscreenAlignment + " --remember " + (Config.rememberLastUser ? "true" : "false")]
+                            applyProcPopup.running = true
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: Theme.onPrimaryContainerColor
+                            font.pixelSize: 14
+                            font.weight: Font.Medium
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            implicitHeight: 36
+                            implicitWidth: 100
+                            color: Theme.primary
+                            opacity: parent.down ? 0.3 : (parent.hovered ? 0.4 : 0.2)
+                            radius: 18
+                            border.width: 1
+                            border.color: Theme.primary
+                            layer.enabled: true
+                            Behavior on opacity { NumberAnimation { duration: 150 } }
+                        }
+                    }
+
+                    Button {
+                        id: discardBtn
+                        text: "Discard"
+                        onClicked: {
+                            Config.discard()
+                            unsavedPopup.visible = false
+                            root.hide()
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: Theme.onPrimaryContainerColor
+                            font.pixelSize: 14
+                            font.weight: Font.Medium
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        background: Rectangle {
+                            implicitHeight: 36
+                            implicitWidth: 100
+                            color: discardBtn.down ? Qt.rgba(Theme.onPrimaryContainerColor.r, Theme.onPrimaryContainerColor.g, Theme.onPrimaryContainerColor.b, 0.2) : (discardBtn.hovered ? Qt.rgba(Theme.onPrimaryContainerColor.r, Theme.onPrimaryContainerColor.g, Theme.onPrimaryContainerColor.b, 0.1) : "transparent")
+                            radius: 18
+                            border.width: 1
+                            border.color: Theme.outlineVariant
+                            layer.enabled: true
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                        }
+                    }
+                }
+            }
+        }
+        
+        Process {
+            id: applyProcPopup
+            property string resultMessage: ""
+            
+            stdout: SplitParser { onRead: data => console.log(data) }
+            stderr: SplitParser { onRead: data => { applyProcPopup.resultMessage = data; } }
+            
+            onStarted: {
+                resultMessage = ""
+            }
+            
+            onExited: (code) => {
+                if (code === 0) {
+                    unsavedPopup.visible = false
+                    root.hide()
+                } else {
+                    if (resultMessage.indexOf("greeter-sync group") !== -1) {
+                        resultMessage = "Permission denied. Ensure you are in 'greeter-sync' group and have logged out and back in.";
                     }
                 }
             }

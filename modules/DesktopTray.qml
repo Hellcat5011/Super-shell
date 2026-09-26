@@ -10,6 +10,8 @@ import "../services"
 PanelWindow {
     id: root
 
+    signal toggleSettings()
+
     anchors {
         top: true
         right: true
@@ -41,16 +43,12 @@ PanelWindow {
         anchors.centerIn: parent
         spacing: 12
 
-        SettingsWindow {
-            id: settingsWindow
-        }
-
         MouseArea {
             width: 24
             height: 24
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton
-            onClicked: settingsWindow.toggle()
+            onClicked: root.toggleSettings()
 
             Item {
                 anchors.centerIn: parent

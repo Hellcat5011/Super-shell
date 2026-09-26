@@ -53,12 +53,18 @@ trap cleanup EXIT
 (while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null) &
 KEEP_ALIVE_PID=$!
 
-# 5. Setup greeter-sync group and /var/lib state dir
 echo "Setting up greeter permissions and state directory..."
 if ! getent group greeter-sync >/dev/null; then
     sudo groupadd greeter-sync
 fi
 sudo usermod -aG greeter-sync "$USER"
+
+if ! id greeter >/dev/null 2>&1; then
+    sudo useradd --system --no-create-home --shell /usr/bin/nologin greeter
+fi
+sudo usermod -aG greeter-sync greeter
+sudo usermod -aG video greeter
+sudo usermod -aG input greeter
 
 sudo mkdir -p /var/lib/greetd/quickshell-greeter
 sudo chown root:greeter-sync /var/lib/greetd/quickshell-greeter
@@ -69,11 +75,15 @@ if ! groups | grep -q '\bgreeter-sync\b'; then
     echo "NOTE: 'greeter-sync' group is not active in this shell yet, using sudo -g for sync script."
 fi
 
-# 6. Copy deploy tree
-echo "Deploying greeter QML..."
+echo "Deploying greeter files..."
 sudo mkdir -p /etc/greetd/quickshell-greeter
-sudo rsync -a "$REPO_DIR/deploy/etc/greetd/quickshell-greeter/" /etc/greetd/quickshell-greeter/
+sudo rsync -a --exclude '__pycache__' "$REPO_DIR/deploy/etc/greetd/quickshell-greeter/" /etc/greetd/quickshell-greeter/
 sudo rsync -a "$REPO_DIR/deploy/etc/greetd/hyprland-greet.lua" /etc/greetd/hyprland-greet.lua
+if [ -f /etc/greetd/config.toml ]; then
+    sudo cp /etc/greetd/config.toml /etc/greetd/config.toml.bak
+    echo "Backed up existing config.toml to config.toml.bak"
+fi
+sudo cp "$REPO_DIR/deploy/etc/greetd/config.toml" /etc/greetd/config.toml
 
 echo ""
 echo "Please review PAM configuration diff (if it exists):"
@@ -89,8 +99,6 @@ if [[ "$confirm_pam" =~ ^[Yy]$ ]]; then
     echo "Installed /etc/pam.d/quickshell"
 fi
 
-
-
 # Print recovery keybind
 echo ""
 echo "=== IMPORTANT ==="
@@ -99,12 +107,10 @@ cat "$REPO_DIR/deploy/hyprland-keybind.conf.snippet"
 echo "================="
 echo ""
 
-# 7. Run sync script once
 echo "Running initial sync..."
-# Since the usermod -aG doesn't apply to the current shell session, we use sudo
-# to execute the script as the current user but explicitly specifying the new primary group.
-# This avoids sg/newgrp which might prompt for passwords or not be available, and ensures
-# the script has the correct permissions to write into the setgid /var/lib directory.
-sudo -u "$USER" -g greeter-sync bash "$REPO_DIR/deploy/sync-greeter-wallpaper.sh"
+sudo -u "$USER" -g greeter-sync bash "$REPO_DIR/scripts/sync-greeter-wallpaper.sh"
+
+echo "Writing default greeter config..."
+sudo -u "$USER" -g greeter-sync bash -c 'printf "{\n  \"lockscreenAlignment\": \"left\",\n  \"rememberLastUser\": false\n}\n" > /var/lib/greetd/quickshell-greeter/config-snapshot.json && chmod 644 /var/lib/greetd/quickshell-greeter/config-snapshot.json'
 
 echo "Installation complete. Please reboot or restart greetd."
